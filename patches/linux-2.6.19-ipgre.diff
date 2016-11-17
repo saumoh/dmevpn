@@ -1,0 +1,44 @@
+Index: linux-2.6.19/net/ipv4/ip_gre.c
+===================================================================
+--- linux-2.6.19.orig/net/ipv4/ip_gre.c	2006-11-29 23:57:37.000000000 +0200
++++ linux-2.6.19/net/ipv4/ip_gre.c	2008-01-31 08:50:21.000000000 +0200
+@@ -1033,7 +1033,13 @@
+ 	return 0;
+ }
+ 
+-#ifdef CONFIG_NET_IPGRE_BROADCAST
++static int ipgre_tunnel_parse_header(struct sk_buff *skb, unsigned char *haddr)
++{
++	struct iphdr *iph = (struct iphdr*) skb->mac.raw;
++	memcpy(haddr, &iph->saddr, 4);
++	return 4;
++}
++
+ /* Nice toy. Unfortunately, useless in real life :-)
+    It allows to construct virtual multiprotocol broadcast "LAN"
+    over the Internet, provided multicast routing is tuned.
+@@ -1091,6 +1097,7 @@
+ 	return -t->hlen;
+ }
+ 
++#ifdef CONFIG_NET_IPGRE_BROADCAST
+ static int ipgre_open(struct net_device *dev)
+ {
+ 	struct ip_tunnel *t = netdev_priv(dev);
+@@ -1139,6 +1146,7 @@
+ 	dev->get_stats		= ipgre_tunnel_get_stats;
+ 	dev->do_ioctl		= ipgre_tunnel_ioctl;
+ 	dev->change_mtu		= ipgre_tunnel_change_mtu;
++	dev->hard_header_parse  = ipgre_tunnel_parse_header;
+ 
+ 	dev->type		= ARPHRD_IPGRE;
+ 	dev->hard_header_len 	= LL_MAX_HEADER + sizeof(struct iphdr) + 4;
+@@ -1193,6 +1201,8 @@
+ 			dev->stop = ipgre_close;
+ 		}
+ #endif
++	} else {
++		dev->hard_header = ipgre_header;
+ 	}
+ 
+ 	if (!tdev && tunnel->parms.link)

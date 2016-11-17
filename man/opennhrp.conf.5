@@ -1,0 +1,227 @@
+.TH OPENNHRP.CONF 5 "27 Oct 2010" "" "OpenNHRP Documentation"
+
+.SH NAME
+opennhrp.conf \- NHRP daemon configuration file
+
+.SH DESCRIPTION
+The
+.I opennhrp.conf
+file contains information for the
+.BR opennhrp .
+.PP
+This configuration file is a free-form ASCII text file. It is parsed by the
+word-by-word parser built into
+.BR opennhrp .
+The file may contain extra whitespace, tabs and newline for formatting
+purposes. Keywords and contents are case-sensitive. Comments can be marked
+with a hash sign
+.RB ( # )
+and everything following it until newline is ignored.
+
+.SH "DIRECTIVES"
+Directives are keywords that can appear in any context of the configuration
+file and they select a new context.
+
+.PP
+.BI "interface " interface-name
+.RS
+Marks the start of configuration for network interface
+.IR interface-name .
+Even if no interface specific configuration is required, the
+.B interface
+directive must be present to enable NHRP on that interface.
+.RE
+
+.SH "INTERFACE CONTEXT"
+These configuration keywords can appear only in the interface context.
+
+.PP
+.BI "map " protocol-address[/prefix] " " nbma-address " [register] [cisco]"
+.RS
+Creates static peer mapping of
+.I protocol-address
+to
+.IR nbma-address .
+.PP
+If the
+.I prefix
+parameter is present, it directs
+.B opennhrp
+to use this peer as a next hop server when sending Resolution Requests
+matching this subnet.
+.PP
+The optional parameter
+.I register
+specifies that Registration Request should be sent to this peer on
+startup.
+.PP
+If the statically mapped peer is running Cisco IOS, specify the
+.B cisco
+keyword. It is used to fix statically the Registration Request ID
+so that a matching Purge Request can be sent if NBMA address has changed.
+This is to work around broken IOS which requires Purge Request ID to
+match the original Registration Request ID.
+.RE
+
+.BI "dynamic-map " protocol-address/prefix " " nbma-domain-name
+.RS
+Specifies that the NBMA addresses of the next hop servers are defined in the
+domain name
+.IR nbma-domain-name .
+For each A record opennhrp creates a dynamic NHS entry.
+
+Each dynamic NHS will get a peer entry with the configured network address
+and the discovered NBMA address.
+
+The first registration request is sent to the protocol broadcast address,
+and the server's real protocol address is dynamically detected from the first
+registration reply (requires opennhrp 0.11 or newer).
+
+Alternatively, if
+.BR peer-up
+script hook can determine the protocol address from the NBMA address (e.g.
+by doing an additional DNS lookup or by parsing the IPsec certificate) it can
+inform this mapping via
+.BR opennhrpctl "(8) " "update nbma " command.
+.RE
+
+.PP
+.BI "shortcut-target " protocol-address/prefix " [holding-time " holdtime "]"
+.RS
+Defines an off-NBMA network prefix for which the GRE interface will act
+as a gateway. This an alternative to defining local interfaces with
+shortcut-destination flag.
+.RE
+
+.BR multicast " " dynamic "|" nhs
+.br
+.BI "multicast " protocol-address
+.RS
+Determines how opennhrp daemon should soft switch the multicast traffic.
+Currently, multicast traffic is captured by opennhrp daemon using a packet
+socket, and resent back to proper destinations. This means that multicast
+packet sending is CPU intensive.
+
+Specfying
+.B nhs
+makes all multicast packets to be repeated to each statically configured
+next hop.
+.B dynamic
+instructs to forward to all peers which we have a direct connection with.
+Alternatively, you can specify the directive multiple times for each
+.I protocol-address
+the multicast traffic should be sent to.
+
+.B "WARNING:"
+It is very easy to misconfigure multicast repeating if you have multiple
+NHS:es.
+.RE
+
+.BI "holding-time " holdtime
+.RS
+Specifies the holding time for NHRP Registration Requests and
+Resolution Replies sent from this interface or shortcut-target.
+The
+.I holdtime
+is specified in seconds and defaults to two hours.
+.RE
+
+.BI "route-table " routetable
+.RS
+Specifies the kernel routing table to be monitored for outgoing routes
+to this interface. This is required to do routing lookups excluding
+active shortcut routes (for existing shortcut route renewal). The
+default is main table.
+
+If you use
+.B table
+directive in
+.B zebra.conf
+to put Quagga routes in alternate table, this should match with it.
+.RE
+
+.BI "cisco-authentication " secret
+.RS
+Enables Cisco style authentication on NHRP packets. This embeds the
+.I secret
+plaintext password to the outgoing NHRP packets. Incoming NHRP packets
+on this interface are discarded unless the
+.I secret
+password is present. Maximum length of the
+.I secret
+is 8 characters.
+.RE
+
+.B redirect
+.RS
+Enable sending of Cisco style NHRP Traffic Indication packets. If
+this is enabled and
+.B opennhrp
+detects a forwarded packet, it will send a message to the original sender
+of the packet instructing it to create a direct connection with the
+destination. This is basically a protocol independent equivalent of ICMP
+redirect.
+.RE
+
+.B shortcut
+.RS
+Enable creation of shortcut routes. A received NHRP Traffic Indication
+will trigger the resolution and establishment of a shortcut route.
+.PP
+.B IMPORTANT:
+You still need to run some routing protocol or have static routes
+to some hub node in your NBMA network. NHRP does not advertise routes;
+it can create shortcut route only for an already routable subnet.
+.RE
+
+.B non-caching
+.RS
+Disables caching of peer information from forwarded NHRP Resolution
+Reply packets. This can be used to reduce memory consumption on big
+NBMA subnets.
+.PP
+NOTE: currently does not do much as caching is not implemented.
+.RE
+
+.B shortcut-destination
+.RS
+This instructs
+.B opennhrp
+to reply with authorative answers on NHRP Resolution Requests destinied
+to addresses in this interface (instead of forwarding the packets). This
+effectively allows the creation of shortcut routes to subnets located
+on the interface.
+.PP
+When specified, this should be the only keyword for the interface.
+.RE
+
+.SH EXAMPLE
+The following configuration file was used for testing OpenNHRP on a machine
+with two ethernet network interfaces. GRE tunnel was configured with tunnel
+IP 10.255.255.2/24. Configuration enables registration to hub node at
+10.255.255.1 and resolution of other nodes in the subnet using that hub.
+.PP
+It also enables creation of shortcut routes to networks behind other
+hosts (with holding-time override for the defined shortcut-target)
+in our NBMA network and allows incoming shortcut routes.
+.PP
+.nf
+interface gre1
+  holding-time 3600
+  map 10.255.255.1/24 192.168.200.1 register
+  shortcut-target 172.16.0.0/16 holding-time 1800
+  cisco-authentication secret
+  shortcut
+  redirect
+  non-caching
+
+interface eth1
+  shortcut-destination
+
+.fi
+
+.SH "SEE ALSO"
+.BR opennhrp (8)
+
+.SH AUTHORS
+Timo Teras <timo.teras@iki.fi>

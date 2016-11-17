@@ -1,0 +1,124 @@
+.TH OPENNHRP 8 "20 May 2009" "" "OpenNHRP Documentation"
+
+.SH NAME
+opennhrpctl \- opennhrp administrative control tool
+
+.SH SYNOPSIS
+.B opennhrpctl
+.BI "[\-a " admin\-socket "]" " command " "[" "arguments" "]..."
+
+.SH DESCRIPTION
+.B opennhrpctl
+is an utility to control
+.BR opennhrp (8)
+daemon operation. A UNIX socket is used for communication between
+.B opennhrpctl
+and
+.BR opennhrp (8).
+Administration priviledges for a non-root user can be granted by modifying
+the permissions and ownership of the socket.
+
+The following commands are available:
+
+.BI "[cache] show [" selector "]..."
+.RS
+Show contents of next hop cache (configured and resolved entries).
+.RE
+
+.BI "[cache] flush [" selector "]..."
+.RS
+Clear all non-permanent entries which match the selector specifiers.
+.RE
+
+.BI "[cache] purge [" selector "]..."
+.RS
+Purge entries from NHRP cache: cached entries are removed and permanent
+entries are forced down, up and finally reregistered.
+.RE
+
+.BI "[cache] lowerdown [" selector "]..."
+.RS
+Purge entries from NHRP cache with indication that lower layer failed:
+e.g. IPsec daemon detected dead-peer or received INITIIAL-CONTACT
+notification.
+.RE
+
+.BI "route show [" selector "]..."
+.RS
+Show the contents of locally cached kernel routing information
+(outbound routing base to do route lookups excluding active shortcut
+routes).
+.RE
+
+.B "interface show"
+.RS
+Show the contents of interface configuration table, and the cached information
+from kernel (like protocol and NBMA IP addresses in use currently).
+.RE
+
+.BI "redirect purge [" protocol-address "/" prefix-length "]"
+.RS
+Clear redirection cache from all entries matching the specified address.
+.RE
+
+.BI "update nbma " nbma-address " " protocol-address
+.RS
+This command can be used from
+.BR opennhrp-script "(8)"
+to inform
+.BR opennhrp
+daemon of the real
+.IR protocol-address
+of dynamically discovered NHS.
+.RE
+
+The following selectors can be used to limit which cache entries will
+be effected:
+
+.BI nbma " nbma-address"
+.RS
+Matches entries where the remote has NBMA address
+.IR nbma-address .
+.RE
+
+.BI protocol " protocol-address" "[/" "prefix-length" "]"
+.RS
+Matches entries where the remote has protocol address
+.IR protocol-address " with at least prefix length " prefix-length .
+.RE
+
+.BI local-nbma " nbma-address"
+.RS
+Matches entries from local interface which owns the NBMA address
+.IR nbma-address .
+.RE
+
+.BI local-protocol " protocol-address"
+.RS
+Matches entries only from local interface which owns the protocol address
+.IR protocol-address .
+.RE
+
+.BI interface " interface-name"
+.br
+.BI iface " interface-name"
+.br
+.BI dev " interface-name"
+.RS
+Search entries only from local interface with name
+.IR interface-name .
+.RE
+
+.RE
+
+.SH FILES
+.I /var/run/opennhrp.socket
+.RS
+.BR opennhrp "(8) control socket"
+.RE
+
+.SH "SEE ALSO"
+.BR opennhrp (8)
+
+.SH AUTHORS
+Timo Teras <timo.teras@iki.fi>

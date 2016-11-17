@@ -1,0 +1,119 @@
+.TH OPENNHRP 8 "16 November 2007" "" "OpenNHRP Documentation"
+
+.SH NAME
+opennhrp \- daemon to resolve next hop address in NBMA network
+
+.SH SYNOPSIS
+.BI "opennhrp [" "option" "]..."
+
+.SH DESCRIPTION
+.B opennhrp
+implements the Next Hop Resolution Protocol (NHRP) which is used to
+improve the efficiency of routing computer network traffic over
+Non-Broadcast, Multiple Access (NBMA) Networks.
+.PP
+NHRP provides an ARP-like solution that allows a system to dynamically
+learn the NBMA address of the other systems that are part of that network,
+allowing these systems to directly communicate without requiring traffic
+to use an intermediate hop.
+.PP
+.B opennhrp
+implementation is based on RFC2332, but contains some modifications and
+extensions to be compatible with Cisco NHRP/DMVPN implementation.
+Modifications have been made for authentication extension, Cisco NAT
+address extension and shortcut switching enhancements support.
+
+.SH OPTIONS
+The following options are recognized:
+
+.IP "\fB\-a \fIadmin\-socket"
+Specify management interface socket as
+.IR admin\-socket .
+The default is
+.IR /var/run/opennhrp.socket .
+
+.IP "\fB\-c \fIconfig\-file"
+Use
+.I config\-file
+instead of
+.I /etc/opennhrp/opennhrp.conf
+for configuration.
+
+.IP "\fB\-s \fIscript\-file"
+Execute
+.I script\-file
+instead of
+.I /etc/opennhrp/opennhrp\-script
+on important events.
+
+.IP "\fB\-p \fIpid\-file"
+Store process id in
+.I pid\-file
+instead of
+.IR /var/run/opennhrp.pid .
+This file is also used to detect if opennhrp daemon is already running.
+Pid-file is not created unless
+.B -d
+is specified too.
+
+.IP "\fB-d"
+Run in daemon mode, forking to background after initialization.
+
+.IP "\fB-v"
+Verbose. Print more log messages.
+
+.IP "\fB-V"
+Print version and exit.
+
+.SH SIGNALS
+.IP \fBSIGHUP
+Forget all cached information about other system addresses.
+.IP \fBSIGUSR1
+Dump NHRP peer database to system log.
+
+.SH FILES
+.I /etc/opennhrp/opennhrp.conf
+.RS
+The system wide configuration file. See
+.BR opennhrp.conf (5)
+for further details.
+.RE
+
+.I /etc/opennhrp/opennhrp\-script
+.RS
+Script executed by
+.B opennhrp
+on important events. See
+.BR opennhrp\-script (8)
+for more information how the script is executed.
+.RE
+
+.I /var/run/opennhrp.socket
+.RS
+.BR opennhrp "(8) control socket"
+.RE
+
+.SH BUGS
+Currently only IPv4 over IPv4 networks using NBMA GRE tunnels is
+supported (you need Linux kernel 2.6.24-rc2 or later).
+.PP
+Replying with cached information to non-authorative resolution
+requests is not implemented.
+.PP
+Please send bug reports to OpenNHRP issue tracker in SourceForge.
+
+.SH "SEE ALSO"
+.BR opennhrp.conf (5),
+.BR opennhrpctl (8),
+.BR opennhrp\-script (8)
+.br
+http://sourceforge.net/projects/opennhrp
+.PP
+For more information about the protocol see:
+.br
+RFC2332 NBMA Next Hop Resolution Protocol (NHRP)
+.br
+RFC2333 NHRP Protocol Applicability Statement
+
+.SH AUTHORS
+Timo Teras <timo.teras@iki.fi>

@@ -1,0 +1,123 @@
+OpenNHRP Release Notes
+======================
+
+OpenNHRP is an NHRP implementation for Linux. It has most of the RFC2332
+and Cisco IOS extensions.
+
+Project homepage: http://sourceforge.net/projects/opennhrp
+
+Git repository: git://opennhrp.git.sourceforge.net/gitroot/opennhrp
+
+	LICENSE
+
+OpenNHRP is licensed under the MIT License. See MIT-LICENSE.txt for
+additional details.
+
+OpenNHRP embeds libev. libev is dual licensed with 2-clause BSD and
+GPLv2+ licenses. See libev/LICENSE for additional details.
+
+OpenNHRP links to c-ares. c-ares is licensed under the MIT License.
+
+
+	KERNEL REQUIREMENTS
+
+You need a kernel with ip_gre patched to support sending and receiving
+using NBMA address. 
+
+The support was originally added to 2.6.24-rc2, but it contains a bug
+that prevents NAT detection. The latest fix is present in 2.6.24-rc7.
+
+Gentoo kernels: gentoo-sources-2.6.23-r1 and gentoo-sources-2.6.22-r10
+have the partitial support too (no NAT there either).
+
+For the brave who compile their own kernels, there are patches against
+vanilla 2.6.20 and 2.6.22 kernels in the patches directory. Or just
+upgrade to 2.6.24 or later and no patching is required. Though, there
+has been a major performance fixes in newer kernels, so 2.6.35 or later
+is strongly recommended.
+
+Also remember to turn on CONFIG_ARPD and CONFIG_NET_IPGRE in your kernel
+configuration.
+
+	SYSTEM REQUIREMENTS
+
+To compile OpenNHRP you need:
+- GNU make (3.81 or later works)
+- GCC
+- pkg-config
+- c-ares library (Ubuntu package: libc-ares-dev)
+
+	COMPILING
+
+Just type 'make' and 'make install'.
+
+	CONFIGURATION
+
+OpenNHRP currently supports only IPv4 over IPv4 using NBMA GRE tunnels.
+To create NBMA GRE tunnel you might use following:
+
+	ip tunnel add gre1 mode gre key 1234 ttl 64
+	ip addr add 10.255.255.2/24 dev gre1
+	ip link set gre1 up
+	
+This should work with the configuration example in opennhrp.conf(5).
+
+	IPSEC ENCRYPTION OF GRE PACKETS
+
+ipsec-tools 0.8.0 or later is recommended. Earlier versions need patching
+for dmvpn to work properly.
+
+The ipsec-tools configuration I prefer to use is: encrypt all GRE
+traffic in transport mode. IPsec policy for that should be defined in
+/etc/ipsec.conf:
+	spdflush;
+	spdadd 0.0.0.0/0 0.0.0.0/0 gre -P out ipsec esp/transport//require;
+	spdadd 0.0.0.0/0 0.0.0.0/0 gre -P in  ipsec esp/transport//require;
+
+And ipsec-tools configuration with pre-shared key could look something
+like this:
+
+/etc/racoon/racoon.conf:
+	path pre_shared_key "/etc/racoon/psk.txt";
+	remote anonymous {
+		exchange_mode aggressive;
+		lifetime time 24 hour;
+		my_identifier user_fqdn "my-user-name@my-domain.example";
+		nat_traversal on;
+		# For ipsec-tools snapshot 2010-10-10 or later
+		script "/etc/opennhrp/racoon-ph1dead.sh" phase1_dead;
+		# For earlier ipsec-tools
+		# script "/etc/opennhrp/racoon-ph1down.sh" phase1_down;
+		proposal {
+			encryption_algorithm 3des;
+			hash_algorithm sha1;
+			authentication_method pre_shared_key;
+			dh_group 2;
+		}        
+	}
+	sainfo anonymous {
+		pfs_group 2;
+		lifetime time 12 hour;
+		encryption_algorithm 3des, blowfish 448, rijndael;
+		authentication_algorithm hmac_sha1, hmac_md5;
+		compression_algorithm deflate;
+	}
+
+And /etc/racoon/psk.txt:
+	my-user-name@my-domain.example	"my-secret-pre-shared-key"
+
+It is of course more secure to use certificates for authentication.
+And using aggressive main mode is not recommended either, but it is
+required to make FQDN pre-shared authentication work. This setup is
+fast to do and can get you started with testing OpenNHRP.
+
+	DOCUMENTATION
+
+Most of the OpenNHRP documentation is in the manpages. Read them.
+
+Also some general NHRP documents can be found from Cisco website
+(www.cisco.com).
+
+	BUGS
+
+Use the SourceForge bug tracker or mailing list.

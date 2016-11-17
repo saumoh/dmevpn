@@ -1,0 +1,71 @@
+#!/bin/sh
+#
+# This version of the script check the X509 certificate used to authenticate
+# the IPsec connection. It parses a special format subject field, and verifies
+# the claimed GRE is bound to that certificate, before allowing NHRP
+# registration or direct tunnel to succeed.
+#
+# It also reconfigure BGP filters according to certificate contents. This is
+# only useful for hub nodes.
+#
+# Example of certificate:
+#   subjectAltName: DirName:/OU=GRE=192.168.1.1/NET=10.1.0.0/16
+
+case $1 in
+interface-up)
+	ip route flush proto 42 dev $NHRP_INTERFACE
+	ip neigh flush dev $NHRP_INTERFACE
+	;;
+peer-register)
+	(
+		flock -x 200
+
+		CERT=`racoonctl get-cert inet $NHRP_SRCNBMA $NHRP_DESTNBMA | openssl x509 -inform der -text -noout | egrep -o "/OU=[^/]*(/[0-9]+)?" | cut -b 5-`
+		if [ -z "`echo "$CERT" | grep "^GRE=$NHRP_DESTADDR"`" ]; then
+			echo "ERROR: IP $NHRP_DESTADDR at $NHRP_DESTNBMA NOT verified"
+			exit 1
+		fi
+
+		AS=`echo "$CERT" | grep "^AS=" | cut -b 4-`
+		vtysh -d bgpd -c "configure terminal" \
+			-c "router bgp $MY_AS" \
+			-c "neighbor $NHRP_DESTADDR remote-as $AS" \
+			-c "neighbor $NHRP_DESTADDR peer-group leaf" \
+			-c "neighbor $NHRP_DESTADDR prefix-list net-$AS-in in"
+
+		SEQ=5
+		(echo "$CERT" | grep "^NET=" | cut -b 5-) | while read NET; do
+			vtysh -d bgpd -c "configure terminal" \
+				-c "ip prefix-list net-$AS-in seq $SEQ permit $NET"
+			SEQ=$(($SEQ+5)
+		done
+	) 200>/var/lock/opennhrp-script.lock
+	;;
+peer-up)
+	echo "Create link from $NHRP_SRCADDR ($NHRP_SRCNBMA) to $NHRP_DESTADDR ($NHRP_DESTNBMA)"
+	racoonctl establish-sa -w isakmp inet $NHRP_SRCNBMA $NHRP_DESTNBMA || exit 1
+	racoonctl establish-sa -w esp inet $NHRP_SRCNBMA $NHRP_DESTNBMA gre || exit 1 
+
+	CERT=`racoonctl get-cert inet $NHRP_SRCNBMA $NHRP_DESTNBMA | openssl x509 -inform der -text -noout | egrep -o "/OU=[^/]*(/[0-9]+)?" | cut -b 5-`
+	if [ -z "`echo "$CERT" | grep "^GRE=$NHRP_DESTADDR"`" ]; then
+		echo "ERROR: IP $NHRP_DESTADDR at $NHRP_DESTNBMA NOT verified"
+		exit 1
+	fi
+	;;
+peer-down)
+	echo "Delete link from $NHRP_SRCADDR ($NHRP_SRCNBMA) to $NHRP_DESTADDR ($NHRP_DESTNBMA)"
+	racoonctl delete-sa isakmp inet $NHRP_SRCNBMA $NHRP_DESTNBMA
+	;;
+route-up)
+	echo "Route $NHRP_DESTADDR/$NHRP_DESTPREFIX is up"
+	ip route replace $NHRP_DESTADDR/$NHRP_DESTPREFIX proto 42 via $NHRP_NEXTHOP dev $NHRP_INTERFACE
+	ip route flush cache
+	;;
+route-down)
+	echo "Route $NHRP_DESTADDR/$NHRP_DESTPREFIX is down"
+	ip route del $NHRP_DESTADDR/$NHRP_DESTPREFIX proto 42
+	ip route flush cache
+	;;
+esac
+
+exit 0

@@ -1,0 +1,313 @@
+=============================================================================
+OpenNHRP ChangeLog                   http://sourceforge.net/projects/opennhrp
+=============================================================================
+
+Detailed changelog is available via Git history via web:
+http://opennhrp.git.sf.net/git/gitweb.cgi?p=opennhrp;a=blob;f=NEWS;hb=HEAD
+
+-----------------------------------------------------------------------------
+ opennhrp 0.14.1 - released 30/Jan/2013
+-----------------------------------------------------------------------------
+ - fix: recover from dns lookup failure of dynamic-map entries
+ - fix: correct the multicast capture rules (to not send traffic indication
+   about multicast packets)
+
+-----------------------------------------------------------------------------
+ opennhrp 0.14 - released 12/Dec/2012
+-----------------------------------------------------------------------------
+ - licensing terms changed to MIT License
+ - fix: do not lock up if there's routing loop for protocol address
+ - fix: handle low holding time for resolved entries properly
+ - fix: dynamically allocate packet filter code to accomodate large
+   routing tables
+
+-----------------------------------------------------------------------------
+ opennhrp 0.13.1 - released 22/Jun/2012
+-----------------------------------------------------------------------------
+ - fix: make "local-nbma" selector work properly if there are multiple gre
+   interfaces (reported by Alex Levit)
+ - fix: do not call opennhrp-script "interface-up" hook if the interface
+   being created and in down state (reported by Alex Levit)
+
+-----------------------------------------------------------------------------
+ opennhrp 0.13 - released 25/Dec/2011
+-----------------------------------------------------------------------------
+ - feature: add admin "interfaces show" command to display information about
+   the interface cache
+ - feature: support GRE interface binding changes (update gre nbma address
+   properly, and purge peer cache) to support dual ISP setups with failover
+ - fix: send registration reply even when all bindings are rejected
+ - fix: fix really the holding-time to apply to shortcut-target
+ - fix: fix hop count handling
+ - fix: various memory leaks fixed
+ - fix: fix memory corruption in the hlist structure (would be visible when
+   opennhrp is acting as NHS with heavy traffic)
+
+-----------------------------------------------------------------------------
+ opennhrp 0.12.3 - released 19/Aug/2011
+-----------------------------------------------------------------------------
+ - feature: export reason why peer-down trigger was executed; and implement
+   'lowerdown' opennhrpctl command for racoon hook to indicate that the
+   IPsec SA has died (opennhrp-script can then avoid the unneccessary and
+   possibly harmful call to racoonctl)
+ - fix: route NHRP queries always via NHS (because ipsec initial-contact
+   mechanism for purging dead IPsec SAs triggers after NHRP rediscovery,
+   and if remote peer was rebooted, the direct link might be dead)
+ - fix: don't negative cache entries on timeout (timeout is indication of
+   temporary error: none of NHS' is reachable)
+ - fix: don't reply to kernel's ARP queries using local route entries.
+   this also prevents bad shortcut-routes if the local GRE prefix is
+   a sub-prefix of routed subnet over the GRE
+
+-----------------------------------------------------------------------------
+ opennhrp 0.12.2 - released 07/Jul/2011
+-----------------------------------------------------------------------------
+ - fix: regression introduced in 0.12's policy routing changes that
+   shortcuts for in-NBMA network would not work unless using dynamic-map
+   NHS configuration (from David Ward)
+
+-----------------------------------------------------------------------------
+ opennhrp 0.12.1 - released 24/Mar/2011
+-----------------------------------------------------------------------------
+ - feature: export tunnel GRE key to opennhrp-script
+ - fix: build error against certain kernel versions and architectures
+ - fix: update registrations when 1/3 of the holding-time has passed as
+   per rfc recommendation
+ - fix: fix holding-time to apply properly to shortcut-target blocks
+
+-----------------------------------------------------------------------------
+ opennhrp 0.12 - released 01/Nov/2010
+-----------------------------------------------------------------------------
+ - feature: preliminary support for policy routing. cache kernel routes for
+   each gre device and use them for routing lookups. nhrp shortcut routes
+   should be in separate routing table. this allows nhrp message routing to
+   always happen using bgp/ospf routes (for shortcut refreshes) and fixes
+   shortcuts to converge with the main routing information.
+ - feature: shortcut-target config option for subnet specific holding-time
+   overrides and aggregation of local subnet to "summary shortcut"
+ - fix: delete shortcut-routes if their gateway is removed to force renewal
+   of the route (shortcut gateway can change due to bgp/ospf routing change)
+ - fix: actually remove dynamic-nhs from peers if it's A entry is removed
+ - fix: disallow duplicate cached entries with dynamic-nhs entries
+ - randomize retry timer and increase script timeouts
+ - improve logging a bit
+
+-----------------------------------------------------------------------------
+ opennhrp 0.11.5 - released 16/Mar/2010
+-----------------------------------------------------------------------------
+ - clear negative cached entries for peers which sends resolution request
+ - use several netlink sockets to receive notifications so we don't lose
+   sync on all of them
+ - fix shortcut renewals
+ - libev updated to version 3.9
+ - signal handling fixed
+
+-----------------------------------------------------------------------------
+ opennhrp 0.11.4 - released 04/Mar/2010
+-----------------------------------------------------------------------------
+ - multicast packet relay fix
+ - netlink buffer sizes increased
+
+-----------------------------------------------------------------------------
+ opennhrp 0.11.3 - released 30/Oct/2009
+-----------------------------------------------------------------------------
+ - handle dns lookup failures properly
+ - fix failover for shortcut routes
+ - detect forwarding loops for indications
+ - some code cleanups
+
+-----------------------------------------------------------------------------
+ opennhrp 0.11.2 - released 25/Sep/2009
+-----------------------------------------------------------------------------
+ - fixed libev usage bug that could cause crash on script timeout
+ - make lock file closed on exec so opennhrp-script instances won't keep
+   opennhrp daemon lock
+ - fixes traffic indications to work again (captured packet length was
+   not right)
+
+-----------------------------------------------------------------------------
+ opennhrp 0.11.1 - released 31/Aug/2009
+-----------------------------------------------------------------------------
+ - update libev version to 3.8
+ - more permssive build for warnings (libev generates some warnings)
+ - fix packet filter installation timer
+ - fix a false assert for peer deletion
+ - disable icmp redirect properly
+ - minor fixes to documentation and example script
+
+-----------------------------------------------------------------------------
+ opennhrp 0.11 - released 18/Jun/2009
+-----------------------------------------------------------------------------
+ - introduce 'dynamic-map' directive to autodetect all next hop servers
+   from a domain name with multiple A entries
+ - 'multicast' directive to better control softswitching of multicast
+   packets
+ - use libev instead of the self written event handling code
+ - enable Forward NHS extension for Traffic Indications to drop the message
+   after it has visited all NHS:es (otherwise it would loop between them
+   until ttl expires)
+ - performance optimizations to packet capturing, multicast packet process
+   switching, handling of registration requests and logging
+ - fix 64-bit compatibility issues
+ - some code documentation and clean ups
+
+-----------------------------------------------------------------------------
+ opennhrp 0.10.3 - released 04/May/2009
+-----------------------------------------------------------------------------
+ - fix handling of c-ares timeouts
+ - fix cancellation of asynchronous operations in peer cache
+ - fix control socket default location (broke on makefile rewrite)
+ - code clean up (rename reference counting functions)
+
+-----------------------------------------------------------------------------
+ opennhrp 0.10.2 - released 28/Apr/2009
+-----------------------------------------------------------------------------
+ - various safety measures in case of off-nbma routing loops
+ - fix a bug which caused static entries without 'register' to get deleted
+ - try to combine shortcut routes to get less nhrp cache entries
+
+-----------------------------------------------------------------------------
+ opennhrp 0.10.1 - released 22/Apr/2009
+-----------------------------------------------------------------------------
+ - fix the breakage in build system after the rewrite
+ - fix registration to servers when using domain names
+
+-----------------------------------------------------------------------------
+ opennhrp 0.10 - released 21/Apr/2009
+-----------------------------------------------------------------------------
+ - use c-ares library to make dns queries asynchronous
+ - fix mtu handling from registration requests
+ - avoid opennhrp-script zombie floods by reaping children between
+   processing registration request packets
+ - rewrite build system to something similar to kbuild
+ - migrate to git
+
+-----------------------------------------------------------------------------
+ opennhrp 0.9.3 - released 20/Feb/2009
+-----------------------------------------------------------------------------
+ - when public IP changes purge all related peer entries (opennhrp should
+   now survive and automatically re-register when dhcp enforces IP change)
+ - remove an assertation that was invalid (could cause opennhrp to abort
+   when acting as NHS in some situation)
+ - make monotonic clock work with old uclibc
+
+-----------------------------------------------------------------------------
+ opennhrp 0.9.2 - released 31/Dec/2008
+-----------------------------------------------------------------------------
+ - pid file locking change in 0.9.1 broke daemonization, make it work again
+
+-----------------------------------------------------------------------------
+ opennhrp 0.9.1 - released 31/Dec/2008
+-----------------------------------------------------------------------------
+ - fix a crash in peer cache enumeration
+ - update opennhrp-script to show how to add host route with mtu
+ - lock pid file as first thing (to prevent accidental startup when opennhrp
+   is already running)
+
+-----------------------------------------------------------------------------
+ opennhrp 0.9 - released 26/Dec/2008
+-----------------------------------------------------------------------------
+ - use monotonic system clock if available
+ - allow startup even if dns names are unresolveable
+ - make nhrp holding time configurable
+ - Cisco NHS specific feature: send cisco compatible purge if unique NBMA
+   mapping already exists (to re-register when NBMA address changes)
+ - additional opennhrp-script example with ipsec certificate checking
+ - some effort to make opennhrp compile on old system (in limited mode)
+ - detect NBMA MTU from interface and transmit it over NHRP and pass it to
+   opennhrp-script (to insert manual NBMA routes if path MTU discovery
+   does not work)
+
+-----------------------------------------------------------------------------
+ opennhrp 0.8 - released 03/Oct/2008
+-----------------------------------------------------------------------------
+ - licensing terms changed to GPL version 2 or later
+ - send purge request to shortcut subnets after registration
+ - clear redirection rate limiting cache for purge request addresses
+ - new admin commands: "redirect purge" and "schedule"
+ - rename admin commands: "flush", "purge" and "show" to have "cache" prefix
+   (accepts still old style commands for a while)
+ - make logging a bit less verbose
+ - minor fixes to renewals of peers and shortcut routes
+ - fix a memory leak
+
+-----------------------------------------------------------------------------
+ opennhrp 0.7.1 - released 18/Jun/2008
+-----------------------------------------------------------------------------
+ - use only primary interface addresses as nbma source address
+ - fix a access to freed memory in certain special cases of peer cache
+   enumeration
+ - fix a memory leak
+
+-----------------------------------------------------------------------------
+ opennhrp 0.7 - released 30/Apr/2008
+-----------------------------------------------------------------------------
+ - catch multicast packets and send them as multiple unicast packets
+   to all known peers
+ - new script events: interface-up (to clear neighbor and route caches
+   on startup) and peer-register (to e.g. validate peer protocol ip address
+   from the ipsec certificate)
+ - parse nat-oa for cached entries
+ - routing regression fixes (don't try to resolve unreachable statically
+   mapped peers)
+ - fix deletion of multiple cache entries from enumeration code
+   (crashed in some rare circumstances) 
+ - check for IFA_LOCAL attribute presence before using it (fixes a crash)
+ - fix bug which caused negative cache entries to prevent registration
+   of the protocol address
+ - code cleanups and some optimizations
+
+-----------------------------------------------------------------------------
+ opennhrp 0.6.2 - released 04/Apr/2008
+-----------------------------------------------------------------------------
+ - accept shortcuts when a route to shortcut-destination interface exists
+   (in addition to local addresses in that interface)
+ - handle netlink link, address and route deleted notifications properly
+ - print error if opennhrp-script fails for some reason
+ - change peer flags: 'lower-up' means opennhrps-script was ran succesfully,
+   'up' means registration has been also done (if it was required)
+ - fix matching of local-nbma selector when gre interface has no remote
+   address and is not explicitely bound to other interface
+ - fix admin interface to give 'Affected-Entries' result correctly
+ - fix config file reading bug; handle last keyword even if there is no
+   final new line
+ - code cleanups and optimizations
+
+-----------------------------------------------------------------------------
+ opennhrp 0.6.1 - released 20/Mar/2008
+-----------------------------------------------------------------------------
+ - fix a crash in error path of packet forwarding
+ - fix routing of locally generated traffic indications
+
+-----------------------------------------------------------------------------
+ opennhrp 0.6 - released 19/Mar/2008
+-----------------------------------------------------------------------------
+ - accept hostname (domain name) as an NBMA address in config file
+ - sanitize admin interface: accept cache entry selectors on
+   flush, purge and show commands; slight changes to unix socket protocol
+ - multiple gre interfaces do not share nhrp cache anymore
+ - opennhrp-script: NHRP_SRCADDR and NHRP_SRCNBMA added
+ - do not let opennhrp-script inherit sockets file descriptors
+ - run peer-down script when peer was purged via admin interface
+ - add option -V to show version
+ - add option -v to show debug log messages (to see nl-arp messages)
+ - performance improvements
+
+-----------------------------------------------------------------------------
+ opennhrp 0.5 - released 05/Mar/2008
+-----------------------------------------------------------------------------
+ - opennhrpctl command line tool
+   - list nhrp cache
+   - purge entries by protocol or nbma address
+   - flush entries
+ - daemon mode
+ - allow comments in configuration file
+ - various bug fixes
+   - flush neighbor cache when interface is found
+   - do not create proxy arp entries when static mapping exists
+
+-----------------------------------------------------------------------------
+ opennhrp 0.4 - released 04/Jan/2008
+-----------------------------------------------------------------------------
+ - first announced release
+

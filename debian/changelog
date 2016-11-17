@@ -1,0 +1,29 @@
+opennhrp (0.14.1-1) unstable; urgency=low
+
+  * Upstream update 0.14.1
+
+ -- Mark Bryars <debian@darkskiez.co.uk>  Thu, 14 Feb 2013 16:18:00 +0100
+
+opennhrp (0.14-1) unstable; urgency=low
+
+  * Upstream update 0.14
+ 
+ -- Mark Bryars <debian@darkskiez.co.uk>  Thu, 13 Dec 2012 00:30:00 +0100
+
+opennhrp (0.13.1-1) unstable; urgency=low
+
+  * Upstream update 0.13.1  
+ 
+ -- Mark Bryars <debian@darkskiez.co.uk>  Fri, 19 Jun 2012 09:54:50 +0100
+
+opennhrp (0.13-2) unstable; urgency=low
+  
+  * Kludge workaround for socket location problem
+
+ -- Mark Bryars <debian@darkskiez.co.uk>  Fri, 19 Jun 2012 09:54:50 +0100
+
+opennhrp (0.13-1) unstable; urgency=low
+
+  * Initial release (Closes: #nnnn)  <nnnn is the bug number of your ITP>
+
+ -- Mark Bryars <debian@darkskiez.co.uk>  Fri, 04 May 2012 22:20:50 +0100

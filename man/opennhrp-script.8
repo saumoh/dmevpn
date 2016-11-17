@@ -1,0 +1,146 @@
+.TH OPENNHRP-SCRIPT 8 "20 May 2009" "" "OpenNHRP Documentation"
+
+.SH NAME
+opennhrp-script \- NHRP peer configuration script
+
+.SH DESCRIPTION
+NHRP peer configuration script is used invoked by
+.BR opennhrp (8).
+.PP
+This script can be used to establish a direct NBMA peer to peer connection
+after NHRP Resolution Reply has been received, but prior to injecting the
+peer address to kernel neighbor table. This could be to insert firewall rules
+allowing the traffic and/or establishing an IPsec connection (or some other
+secure communication channel). The script is also called when the cached peer
+information expires.
+
+.SH OPERATION
+When
+.B opennhrp
+needs to invoke the peer configuration script, it defines a set of variables
+in the environment and then executes the script with exactly one argument.
+The argument is set to the name of the reason why the script has been invoked.
+The following reasons are currently defined:
+.BR "interface-up" , " peer-register" , " peer-up" , " peer-down" ,
+.BR " nhs-up" , " nhs-down" , " route-up" " and " route-down .
+
+.SH INTERFACE-UP
+Interface has been just discovered, or it is has changed state from down
+to up. This is the place to clean up old routes if needed.
+
+.SH PEER-REGISTER
+A peer registration request has been received. The script is run before the
+internal peer cache is altered and this allows the script to reject
+registration without it deleting old peers. This could be used to check that
+IPsec connection is up or one might encode allowed protocol-addresses in the
+certificate and it could be enforced here. This hook is executed synchronously
+so it should be fast.
+
+.SH PEER-UP
+A peer has been discovered (either by means of static configuration, dynamic
+client registration or resolution reply arrival to initiate shortcut).
+This hook is invoked right after the peer's NBMA address is available. For all
+other than dynamic-map entries the protocol address is available too.
+The information will not be injected to the kernel ARP cache until the script
+has returned zero. If non-zero return value is returned, the peer entry is
+marked as invalid and negative cached for a short period of time.
+
+.SH PEER-DOWN
+A peer connection is about to be cleared. This can happend for dynamic client
+registrations or cached information. Dynamic client registrations are teared
+down when registration holding time expires (and no re-registration has
+occured) or if it explicitely removed using Purge Request. Cached entries are
+removed when holding time expires (and there has been no traffic to trigger
+renewal of the peer address information) or when it is explicitely removed
+with Purge Request.
+
+.SH NHS-UP
+This is called for NHS right after the first succesful Registration Reply
+is received.
+This can be used to update application level configuration about which
+servers to use.
+
+.SH NHS-DOWN
+Informs that the specified NHS is no longer available.
+
+.SH ROUTE-UP
+In reply to resolution request we have received a shortcut route with
+destination off the NBMA subnetwork. The script should insert appropriate
+entry to kernel routing table.
+
+.SH ROUTE-DOWN
+The associated shortcut route information is no longer valid and should be
+removed from kernel routing table.
+
+.SH ENVIRONMENT
+.B NHRP_TYPE
+.RS
+For peer-up and peer-down reasons this can be:
+\fBstatic\fR (configured information),
+\fBdynamic-nhs\fR (configured NHS with only NBMA address known),
+\fBdynamic\fR (client registered) or
+\fBcached\fR (resolved since we had packets going there).
+
+The nhs-up and nhs-down reasons are called for \fBstatic\fR entries with
+register keyword and \fBdynamic-nhs\fR entries.
+
+For peer-register this is always \fBdynamic\fR.
+
+For route-up and route-down reasons this is always defined as \fBroute\fR.
+
+For interface-up reason this is irrelevant, but always defined as
+\fBinterface\fR.
+.RE
+
+.B NHRP_INTERFACE
+.RS
+The network interface to which this event is related to.
+.RE
+
+.B NHRP_GRE_KEY
+.RS
+The GRE key assigned to the related network interface.
+.RE
+
+.B NHRP_DESTADDR
+.RS
+Destination protocol address. E.g. for NBMA GRE tunnels this is the IP address
+assigned to the tunnel interface being used.
+.RE
+
+.B NHRP_DESTPREFIX
+.RS
+Subnet prefix length for destination protocol address.
+.RE
+
+.B NHRP_DESTNBMA
+.RS
+Defined only for \fBpeer-up\fR and \fBpeer-down\fR reasons. This contains the
+NBMA address of the destination. E.g. for NBMA GRE this contains the public IP
+of the peer.
+.RE
+
+.B NHRP_DESTMTU
+.RS
+Defined only for \fBpeer-up\fR reasons. This contains the MTU for NBMA
+address of the destination.
+.RE
+
+.B NHRP_NEXTHOP
+.RS
+Defined only for \fBroute-up\fR and \fBroute-down\fR reasons. This is the
+protocol address of the next hop to be used in routing.
+.RE
+
+.B NHRP_PEER_DOWN_REASON
+.RS
+Defined only for \fBpeer-down\fR reason. This describes why the peer has
+been deleted. Currently it is one of \fBexpired\fR, \fBuser-request\fR or
+\fBlower-down\fR.
+.RE
+
+.SH "SEE ALSO"
+.BR opennhrp (8)
+
+.SH AUTHORS
+Timo Teras <timo.teras@iki.fi>

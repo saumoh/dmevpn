@@ -1,0 +1,73 @@
+Ideas, and some definite tasks to do, in no particular order:
+
+- hash lookup for peers based on protocol address; cache route lookups
+  for incomplete entries
+
+- Create some logic to detect if NBMA and public IPs are mixed up in
+  the "map" directive. Issue on warning about this.
+
+- if direct connection not possible, take closest known NHS
+  from ResolutionReply Forward NHS list, so we choose directly
+    connected NHS as our relay
+
+- get rid of replaced flag, mtu specific script call backs done properly
+  e.g. when nbma changes (delete old route, add new); convert the state
+  machine to renew instead of have "new" entry replacing old ones
+
+- when core has no other core links up yet, it should not negative cache
+  anything; instead it should give more time for those links to come up
+
+- main vpnc has shortcut-target /16, with delegation of
+  contained subnet /24 to secondary vpnc; indication gets
+  ignored due to shortcut already being there
+
+- clean up the internal nhrp_packet_send_* API
+
+- send purge on bgp nexthop change
+
+- NHS should not forward Resolution Request to NHC; it
+  should instead reply itself based on registered leases
+
+- IPv6-over-IPv4 support
+
+- IPv[46]-over-IPv6 support, see: http://patchwork.ozlabs.org/patch/173904/
+
+- opennhrp to drop capabilities and run as non-root, libcap-ng
+
+- opennhrp-script: setup bgp weight based on RTT
+
+- interface-up, nhs-up, nhs-down need to be serialized for quagga
+  management. alternatively, the script could return some special
+  value meaning "try again soon".
+
+- offload multicast packet forwarding to kernel
+
+- use mmapped pf_packet interface
+
+- nhrp_peer should be split to more files, it's relatively large now.
+  might split nhrp_peer to separate types.
+
+- Proper handling of unique bit. Currently registration of unique address
+  overwrites previous registration, but this against RFC.
+
+- Load balancing: return multiple CIE entries, when we have multiple
+  local IP addresses. When receiving multi CIE next-hop, balance traffic
+  or for shortcut routes, create a multi nexthop route.
+
+- instead of keeping track of local routes for shortcuts, we could use
+  per-packet kernel lookup for off-nbma destinations.
+
+- Create some logic to detect if NBMA and public IPs are mixed up in
+  the "map" directive. Issue on warning about this.
+
+- Support reloading of configuration (via SIGHUP or "opennhrpctl reload")
+
+- Clean shutdown: send purge request to registration servers, dynamic
+  clients and possibly track resolution requests and purge those too.
+
+- talk zserv to quagga for shortcut routes
+
+- non-blocking admin port writes (needs enumeration code to be
+  interruptible and resumable)
+
+- IGMP snooping and multicast relaying optimizations
