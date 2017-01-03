@@ -1,0 +1,97 @@
+diff --git a/drivers/net/vxlan.c b/drivers/net/vxlan.c
+index fecf7b6..ccf38fd 100644
+--- a/drivers/net/vxlan.c
++++ b/drivers/net/vxlan.c
+@@ -947,7 +947,7 @@ out:
+  * Return true if packet is bogus and should be dropped.
+  */
+ static bool vxlan_snoop(struct net_device *dev,
+-			union vxlan_addr *src_ip, const u8 *src_mac)
++			union vxlan_addr *src_ip, const u8 *src_mac, u32 vni)
+ {
+ 	struct vxlan_dev *vxlan = netdev_priv(dev);
+ 	struct vxlan_fdb *f;
+@@ -969,9 +969,12 @@ static bool vxlan_snoop(struct net_device *dev,
+ 				    src_mac, &rdst->remote_ip.sa, &src_ip->sa);
+ 
+ 		rdst->remote_ip = *src_ip;
++		rdst->remote_vni = vni;
+ 		f->updated = jiffies;
+ 		vxlan_fdb_notify(vxlan, f, rdst, RTM_NEWNEIGH);
+ 	} else {
++		if (vni == 0)
++			vni = vxlan->default_dst.remote_vni;
+ 		/* learned new entry */
+ 		spin_lock(&vxlan->hash_lock);
+ 
+@@ -981,7 +984,7 @@ static bool vxlan_snoop(struct net_device *dev,
+ 					 NUD_REACHABLE,
+ 					 NLM_F_EXCL|NLM_F_CREATE,
+ 					 vxlan->cfg.dst_port,
+-					 vxlan->default_dst.remote_vni,
++					 vni,
+ 					 0, NTF_SELF);
+ 		spin_unlock(&vxlan->hash_lock);
+ 	}
+@@ -1158,6 +1161,7 @@ static void vxlan_rcv(struct vxlan_sock *vs, struct sk_buff *skb,
+ 	struct pcpu_sw_netstats *stats;
+ 	union vxlan_addr saddr;
+ 	int err = 0;
++	u32 origvni = vni;
+ 
+ 	/* For flow based devices, map all packets to VNI 0 */
+ 	if (vs->flags & VXLAN_F_COLLECT_METADATA)
+@@ -1196,7 +1200,7 @@ static void vxlan_rcv(struct vxlan_sock *vs, struct sk_buff *skb,
+ 	}
+ 
+ 	if ((vxlan->flags & VXLAN_F_LEARN) &&
+-	    vxlan_snoop(skb->dev, &saddr, eth_hdr(skb)->h_source))
++	    vxlan_snoop(skb->dev, &saddr, eth_hdr(skb)->h_source, origvni))
+ 		goto drop;
+ 
+ 	skb_reset_network_header(skb);
+@@ -1877,7 +1881,7 @@ static struct dst_entry *vxlan6_get_route(struct vxlan_dev *vxlan,
+ 
+ /* Bypass encapsulation if the destination is local */
+ static void vxlan_encap_bypass(struct sk_buff *skb, struct vxlan_dev *src_vxlan,
+-			       struct vxlan_dev *dst_vxlan)
++			       struct vxlan_dev *dst_vxlan, u32 vni)
+ {
+ 	struct pcpu_sw_netstats *tx_stats, *rx_stats;
+ 	union vxlan_addr loopback;
+@@ -1903,7 +1907,7 @@ static void vxlan_encap_bypass(struct sk_buff *skb, struct vxlan_dev *src_vxlan,
+ 	}
+ 
+ 	if (dst_vxlan->flags & VXLAN_F_LEARN)
+-		vxlan_snoop(skb->dev, &loopback, eth_hdr(skb)->h_source);
++		vxlan_snoop(skb->dev, &loopback, eth_hdr(skb)->h_source, vni);
+ 
+ 	u64_stats_update_begin(&tx_stats->syncp);
+ 	tx_stats->tx_packets++;
+@@ -1965,7 +1969,7 @@ static void vxlan_xmit_one(struct sk_buff *skb, struct net_device *dev,
+ 	if (vxlan_addr_any(dst)) {
+ 		if (did_rsc) {
+ 			/* short-circuited back to local bridge */
+-			vxlan_encap_bypass(skb, vxlan, vxlan);
++			vxlan_encap_bypass(skb, vxlan, vxlan, vni);
+ 			return;
+ 		}
+ 		goto drop;
+@@ -2041,7 +2045,7 @@ static void vxlan_xmit_one(struct sk_buff *skb, struct net_device *dev,
+ 						   vxlan->flags);
+ 			if (!dst_vxlan)
+ 				goto tx_error;
+-			vxlan_encap_bypass(skb, vxlan, dst_vxlan);
++			vxlan_encap_bypass(skb, vxlan, dst_vxlan, vni);
+ 			return;
+ 		}
+ 
+@@ -2097,7 +2101,7 @@ static void vxlan_xmit_one(struct sk_buff *skb, struct net_device *dev,
+ 						   vxlan->flags);
+ 			if (!dst_vxlan)
+ 				goto tx_error;
+-			vxlan_encap_bypass(skb, vxlan, dst_vxlan);
++			vxlan_encap_bypass(skb, vxlan, dst_vxlan, vni);
+ 			return;
+ 		}
+ 
