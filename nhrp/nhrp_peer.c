@@ -1427,6 +1427,7 @@ static void nhrp_peer_send_resolve(struct nhrp_peer *peer)
 		if ((packet->dst_peer =
 		    nhrp_peer_get_control_peer(peer)) == NULL)
 			goto error;
+		packet->dst_peer = nhrp_peer_get(packet->dst_peer);
 		packet->dst_iface = packet->dst_peer->interface;
 	}
 	nhrp_packet_send_request(packet,
@@ -2291,8 +2292,7 @@ static struct nhrp_peer *nhrp_peer_get_peer_w_ctrlif(struct nhrp_interface *ctrl
 			continue;
 		if (p->type != NHRP_PEER_TYPE_STATIC)
 			continue;
-		if (p->interface == ctrlif)
-			return p;
+		return p;
 	}
 	return NULL;
 }

@@ -245,6 +245,9 @@ static int load_config(const char *config_file)
 				rc = 1;
 				break;
 			}
+			/* @SM TBD: when there are multiple vpn's.
+			 * would need to look up ctrlif by name and vpn.
+			 */
 			ctrlif = nhrp_interface_get_by_name(word, FALSE);
 			if (ctrlif == NULL)
 				break;

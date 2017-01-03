@@ -75,5 +75,12 @@ int nhrp_address_match_cie_list(struct nhrp_address *nbma_address,
 				struct list_head *cie_list);
 extern int nhrp_vni_id_parse(const char *string, struct nhrp_address *addr, uint8_t *prefix_len);
 extern uint32_t nhrp_address_extract_subaddr(struct nhrp_address *src);
+struct nhrp_address_slist_t;
+extern void *nhrp_address_slist_init(int bsize);
+extern int nhrp_address_slist_exists(struct nhrp_address_slist_t *list, struct nhrp_address *ref);
+extern void nhrp_address_slist_add(struct nhrp_address_slist_t *list, struct nhrp_address *ref);
+extern void nhrp_address_slist_del(struct nhrp_address_slist_t *list, struct nhrp_address *ref);
+extern void nhrp_address_slist_rm(struct nhrp_address_slist_t *list);
+
 
 #endif

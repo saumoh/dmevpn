@@ -91,10 +91,11 @@ static int admin_show_peer(void *ctx, struct nhrp_peer *peer)
 
 	if (peer->interface != NULL)
 		i += snprintf(&buf[i], len - i,
-			"Interface: %s Vpn: %d vnid: %d\n",
+			"Interface: %s Vpn: %d vnid: %d(%d)\n",
 			peer->interface->name,
-			peer->interface->default_vnid,
-			peer->vnid);
+			peer->interface->vpnid,
+			peer->vnid,
+			peer->interface->default_vnid);
 
 	i += snprintf(&buf[i], len - i,
 		"Type: %s\n"
@@ -410,6 +411,11 @@ static int admin_show_interface(void *ctx, struct nhrp_interface *iface)
 		i += snprintf(&buf[i], len - i,
 			"NBMA-NAT-OA: %s\n",
 			nhrp_address_format(&iface->nat_cie.nbma_address, sizeof(tmp), tmp));
+	}
+	struct nhrp_interface *c;
+	list_for_each_entry(c, &iface->child_intf_list, sibling_list_entry) {
+		i += snprintf(&buf[i], len - i, "Child: vpn %d vni %d\n",
+			      c->vpnid, c->default_vnid);
 	}
 done:
 	i += snprintf(&buf[i], len - i, "\n");

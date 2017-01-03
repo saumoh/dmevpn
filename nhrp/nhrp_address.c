@@ -515,3 +515,89 @@ void nhrp_address_cleanup(void)
 		ev_io_stop(&resolver.fds[i]);
 	ares_destroy(resolver.channel);
 }
+
+struct nhrp_address_slist_t {
+	int	n_buckets;
+	uint8_t data[0];
+};
+
+void *nhrp_address_slist_init(int bsize)
+{
+	struct nhrp_address_slist_t *slist;
+	if (bsize == 0)
+		bsize = 1024;
+	slist = calloc(1, sizeof(*slist)+(sizeof(void *)* bsize));
+	if (!slist)
+		return NULL;
+	slist->n_buckets = bsize;
+	return slist;
+}
+
+static int slist_hash(uint8_t *a, uint8_t l)
+{
+	int i;
+	int h;
+	for (i = 0, h = 0; i < l; i++)
+		h ^= a[i];
+	return h;
+}
+
+static int _nhrp_address_slist_exists(struct nhrp_address_slist_t *list, struct nhrp_address *ref)
+{
+	int bucket = slist_hash(ref->addr, ref->addr_len) % list->n_buckets;
+	int cindex = bucket;
+	struct nhrp_address **hbuck = (struct nhrp_address **)list->data;
+	do {
+		struct nhrp_address *cmp_a = hbuck[cindex];
+		if (!cmp_a)
+			break;
+		if (ref->addr_len != cmp_a->addr_len ||
+		    memcmp(ref->addr, cmp_a->addr, ref->addr_len)) {
+			cindex = (cindex + 1) % 1024;
+			if (cindex == bucket)
+				break;
+		} else
+			return cindex;
+	} while (list->data[cindex]);
+	return -1;
+}
+
+int nhrp_address_slist_exists(struct nhrp_address_slist_t *list, struct nhrp_address *ref)
+{
+	int cindex = _nhrp_address_slist_exists(list, ref);
+	if (cindex < 0)
+		return 0;
+	return 1;
+}
+
+void nhrp_address_slist_add(struct nhrp_address_slist_t *list, struct nhrp_address *ref)
+{
+	int bucket = slist_hash(ref->addr, ref->addr_len) % list->n_buckets;
+	int cindex = bucket;
+	struct nhrp_address **hbuck = (struct nhrp_address **)list->data;
+	if (nhrp_address_slist_exists(list, ref))
+		return;
+	do {
+		struct nhrp_address *cmp_a = hbuck[cindex];
+		if (cmp_a)
+			cindex = (cindex + 1) % 1024;
+		else {
+			hbuck[cindex] = ref;
+			return;
+		}
+	} while (cindex != bucket);
+}
+
+void nhrp_address_slist_del(struct nhrp_address_slist_t *list, struct nhrp_address *ref)
+{
+	int cindex = _nhrp_address_slist_exists(list, ref);
+	struct nhrp_address **hbuck = (struct nhrp_address **)list->data;
+	if (cindex < 0)
+		return;
+	hbuck[cindex] = NULL;
+}
+
+void nhrp_address_slist_rm(struct nhrp_address_slist_t *list)
+{
+	free(list);
+}

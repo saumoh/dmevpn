@@ -244,6 +244,7 @@ static void netlink_read_cb(struct ev_io *w, int revents)
 static int do_get_ioctl(const char *basedev, struct ip_tunnel_parm *p)
 {
 	struct ifreq ifr;
+	char *data;
 
 #ifdef VALGRIND
 	/* Valgrind does not have SIOCGETTUNNEL description, so clear
@@ -251,13 +252,15 @@ static int do_get_ioctl(const char *basedev, struct ip_tunnel_parm *p)
 	memset(&ifr, 0, sizeof(ifr));
 	memset(p, 0, sizeof(*p));
 #endif
+	data = calloc(1, sizeof(*p)+512);
 
 	strncpy(ifr.ifr_name, basedev, IFNAMSIZ);
-	ifr.ifr_ifru.ifru_data = (void *) p;
+	ifr.ifr_ifru.ifru_data = (void *) data;
 	if (ioctl(packet_io.fd, SIOCGETTUNNEL, &ifr)) {
 		nhrp_perror("ioctl(SIOCGETTUNNEL)");
 		return FALSE;
 	}
+	memcpy(p, data, sizeof(*p));
 	return TRUE;
 }
 
@@ -1266,6 +1269,8 @@ int kernel_inject_brneighbor(struct nhrp_address *neighbor,
 	req.ndm.ndm_flags = NTF_SELF;
 
 	if (hwaddr != NULL && hwaddr->type != PF_UNSPEC) {
+		netlink_add_rtattr_l(&req.n, sizeof(req), NDA_LLADDR,
+				     neighbor->addr, neighbor->addr_len);
 		netlink_add_rtattr_l(&req.n, sizeof(req), NDA_DST,
 				     hwaddr->addr, hwaddr->addr_len);
 		netlink_add_rtattr_l(&req.n, sizeof(req), NDA_VNI,
@@ -1285,10 +1290,10 @@ int kernel_inject_brneighbor(struct nhrp_address *neighbor,
 		return 0;
 	}
 
-	req.ndm.ndm_state = NUD_REACHABLE | NUD_NOARP;
-
-	netlink_add_rtattr_l(&req.n, sizeof(req), NDA_LLADDR,
-			     neighbor->addr, neighbor->addr_len);
+	/* NUD_NOARP: Don't replace this learned address.
+	 * NUD_PERMANENT: No timeout of this entry.
+	 */
+	req.ndm.ndm_state = (NUD_REACHABLE | NUD_PERMANENT | NUD_NOARP);
 
 	return netlink_send(&talk_fd, &req.n);
 }

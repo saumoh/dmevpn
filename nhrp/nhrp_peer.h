@@ -110,7 +110,6 @@ struct nhrp_peer {
 
 	const char *purge_reason;
 	struct nhrp_interface *interface;
-//	struct nhrp_interface *controlif;
 	struct nhrp_peer *parent;
 	struct nhrp_packet *queued_packet;
 	struct nhrp_pending_request *request;
