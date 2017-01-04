@@ -31,18 +31,18 @@ DMEVPN can be an alternative to existing, propiterary, offerings like EVPN.
 ** Inside a DC it is safe to assume all mac address that are local to it are
 known/discovered. Only unknown mac's would get forwarded to DMEVPN spoke.
 
-## Depenedencies
+## Dependencies
 * At the HUB only, you will need to update the vxlan.ko (4.4.0, drivers/net/vxlan.c) with the provided patch in the patches/ directory. This patch enables learning of ip+vni for a mac-address.
 
 ## Example
 ### Topology:
-			+-------------------+
+                        +-------------------+
                         |         Hub       |
                         |        br-test    |
                         |         tun2      |
                         |         eth1      |
-			|       (10.0.0.1)  |
-                        +----------+---------+
+                        |       (10.0.0.1)  |
+                        +----------+--------+
                                    |
                 +------------------------------------+
     Spoke1      |                                    |     Spoke2  
