@@ -6,8 +6,7 @@ This work is based off opennhrp source code.
 
 # RFC's Implemented
 Opennhrp implements RFC-2332 (nhrp). https://tools.ietf.org/html/rfc2332
-This works extends nhrp with RFC-2735 (Nhrp support for Virtual Private
-Networks). https://tools.ietf.org/html/rfc2735.
+This works extends nhrp with RFC-2735 (Nhrp support for Virtual Private Networks). https://tools.ietf.org/html/rfc2735.
 
 # What it does?
 Like DMVPN which enables interconnection of layer-3 networks across
@@ -32,7 +31,7 @@ DMEVPN can be an alternative to existing, propiterary, offerings like EVPN.
 known/discovered. Only unknown mac's would get forwarded to DMEVPN spoke.
 
 ## Dependencies
-* At the HUB only, you will need to update the vxlan.ko (4.4.0, drivers/net/vxlan.c) with the provided patch in the patches/ directory. This patch enables learning of ip+vni for a mac-address.
+* At the Hub update the vxlan.ko (4.4.0, drivers/net/vxlan.c) with the patch in the patches/ directory. This patch enables learning of ip+vni for a mac-address.
 
 ## Example
 ### Topology:
