@@ -150,6 +150,12 @@ ip link set tunnel1 up
 # Vxlan tunnel to all spokes
 ip link add tunnel2 type vxlan remote 0.0.0.0 local 10.0.0.1 external learning
 ip link set tunnel2 up
+# Setup the bridge
+brctl addbr br-test
+ip link set br-test up
+brctl addif br-test tunnel2 
+brctl hairpin br-test tunnel2 on
+
 ```
 
 #### Hub opennhrp.conf
