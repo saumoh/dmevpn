@@ -14,7 +14,7 @@ non-broadcast networks DMEVPN enables interconnecting layer-2 networks across a
 non-broadcast networks (like Internet).
 Specifically, if you have a requirement to extend Vxlan islands across a non-broadcast network then you can use DMEVPN.
 DMEVPN can be an alternative to existing, propiterary, offerings like EVPN.
-## Feautres
+## Features
 * Support for multiple Virtual Networks (VN). Each virtual network can be distributed across datacenters.
 * At a Data center each virtual network's vxlan may have it's own vnid.
   DMEVPN will take care of corellating and mapping vnid's across datacenters.
